@@ -5,6 +5,8 @@ Welcome to this guide on how to use AWS S3, API Gateway, and Lambda to handle im
 
 ## Architecture
 
+![Architecture](https://github.com/iwaduarte/tutorial-apigateway-s3-proxy/blob/69e455e04c7e883b8903e21301fb1cb47f0269bf/upload-s3-rest-api-v2.png)
+
 ## Why use API Gateway as a proxy?
 - **Cold Starts**: Reduced cold starts as opposed to using Lambdas.
 - **Cost:** Cost effective.
@@ -77,11 +79,12 @@ Check the CloudFormation in your AWS dashboard to see the resources being create
 You can use **Postman** or any other **HTTP client** to send requests to the custom domain you've set up.
 
 ## Troubleshooting & Tips
-This implementation has room for improvements and adjustments. Check the full guide at for details on what could be optimized or added for your specific needs.
+This implementation has room for improvements and adjustments. Check the full guide at [here](https://medium.com/@iwaduarte/aws-using-api-gateway-for-s3-uploads-to-trigger-lambda-functions-a4deeab5424c) for details on what could be optimized or added for your specific needs.
 
-Additional Resources
-Serverless Documentation https://www.serverless.com/  
-AWS Lambda Documentation https://docs.aws.amazon.com/lambda/index.html  
-AWS API Gateway Documentation https://docs.aws.amazon.com/apigateway/index.html  
+## Additional Resources
+[Complete Guide: AWS - API Gateway to S3 to trigger lambdas](https://medium.com/@iwaduarte/aws-using-api-gateway-for-s3-uploads-to-trigger-lambda-functions-a4deeab5424c)  
+[Serverless Documentation](https://www.serverless.com/)    
+[AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/index.html)  
+[AWS API Gateway Documentation](https://docs.aws.amazon.com/apigateway/index.html)  
 
 ## Happy coding!
