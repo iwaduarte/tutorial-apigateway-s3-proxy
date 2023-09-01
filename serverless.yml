@@ -1,0 +1,116 @@
+# Name of the service
+service: upload-s3
+# Use environment variables from .env file
+useDotenv: true
+# Provider-specific configuration
+provider:
+  name: aws  # Cloud provider
+  runtime: nodejs18.x  # Runtime language and version
+  # Deployment stage (default to 'dev' if not specified)
+  stage: ${env:stage, 'dev'}
+  region: us-east-1  # AWS region
+  versionFunctions: false
+  environment:
+    # Environment variable for the S3 bucket name
+    BUCKET_NAME: ${self:service}-apigateway-proxy
+    SECRET: ${env:SECRET}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        - arn:aws:s3:::${self:provider.environment.BUCKET_NAME}
+        - arn:aws:s3:::${self:provider.environment.BUCKET_NAME}/*
+  apiGateway:
+    binaryMediaTypes:
+      - image/png
+      - image/jpg
+      - image/jpeg
+      - image/gif
+      - image/x-icon
+      - application/octet-stream
+
+# Lambda functions
+functions:
+  jwtAuthorizer:
+    handler: authorizer.jwtAuthorizer  # Path to the JWT authorizer function
+
+  checkFileSize:
+    # Path to the function that checks file size
+    handler: handler.checkFileSize
+    # Triggered when a new object is created in the S3 bucket
+    events:
+      - s3:
+          bucket: ${self:provider.environment.BUCKET_NAME}  # Reference to the S3 bucket created in Resources
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: temp/
+
+
+# AWS CloudFormation Resources
+resources:
+  Resources:
+    Authorizer:
+      Type: AWS::ApiGateway::Authorizer
+      DependsOn:
+        - JwtAuthorizerLambdaFunction
+      Properties:
+        AuthorizerResultTtlInSeconds: 0
+        IdentitySource: method.request.header.Authorization
+        Name: jwtAuthorizer
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        Type: TOKEN
+        AuthorizerUri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${JwtAuthorizerLambdaFunction.Arn}/invocations
+    LambdaInvokePermission:
+      Type: AWS::Lambda::Permission
+      DependsOn:
+        - JwtAuthorizerLambdaFunction
+      Properties:
+        FunctionName: !GetAtt JwtAuthorizerLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: apigateway.amazonaws.com
+        SourceArn:
+          Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/*/*
+
+# Custom configurations
+custom:
+  apiGatewayServiceProxies:
+    - s3:
+        path: /images
+        method: post
+        action: PutObject
+        bucket: ${self:provider.environment.BUCKET_NAME}
+        pathOverride: 'temp/{object}'
+        key:
+          queryStringParam: filename
+        cors: true
+        authorizationType: CUSTOM
+        authorizerId: { Ref: Authorizer }
+        requestParameters:
+          'integration.request.header.x-amz-acl': "'private'"
+
+
+    - s3:
+        path: /images/{filename}
+        method: get
+        action: GetObject
+        bucket: ${self:provider.environment.BUCKET_NAME}
+        key:
+          pathParam: filename
+        cors: true
+        authorizationType: CUSTOM
+        authorizerId: { Ref: Authorizer }
+
+  # Comment it out if you do not want a customized domain.
+  customDomain:
+    domainName: ${env:CUSTOM_DOMAIN}  # Custom domain from environment variable
+    certificateArn: ${env:CERTIFICATE_ARN}  # Certificate ARN from environment variable
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+
+
+plugins:
+  - serverless-apigateway-service-proxy  # Plugin to simplify API Gateway service proxy configurations
+  - serverless-domain-manager # Comment it out if you do not want a customized domain.
